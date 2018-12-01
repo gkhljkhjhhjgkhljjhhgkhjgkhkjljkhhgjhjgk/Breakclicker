@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+	<meta content="utf-8" http-equiv="encoding">
+</head>
+
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+	var BALL_AMOUNT = 1;
+	var BALL_HEALTH = 1;
+	var BALL_RADIUS = 10;
+	
+	var BRICK_AMOUNT = 2;
+	var BRICK_HEALTH = 1;
+	var BRICK_W = 400/BRICK_AMOUNT;
+	var BRICK_H = 300/BRICK_AMOUNT;
+	var BRICK_O = 1;
+	
+	var refillT = -Math.PI/2;
+	
+	var brickGrid = [];
+	var bricksLeft = 0;
+	
+	var brickResetCounter = 0;
+	var xpResetCounter = 0;
+	
+	var brokenBricks = [[]]; //[brickX[], brickY[], timer[], speedX[], speedY[]]
+	var brokenCounter = 0;
+	
+	var ballArray = [[]]; //[ballX[], ballY[], ballSpeedX[], ballSpeedY[], ballHealth[]]
+	var ballCounter = 0;
+	
+	var refillPause = false;
+	var refillF = false;
+	var refillHint = false;
+	var BALL_REFILL = 150;
+	
+	var MONEY_NOW = 0;
+	
+	var UPGRADE_BrickGrid = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, "Maxed!"];
+	var UPGRADE_BrickHealth = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, "Maxed!"];
+	var UPGRADE_BallAmount = [1, 2, 3, 5, 7, 10, 14, 18, 25, 40, "Maxed!"];
+	var UPGRADE_BallRefill = [150, 120, 90, 75, 60, 54, 45, 36, 30, 18, "Maxed!"];
+	var UPGRADE_SF = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, "Maxed!"];
+	var UPGRADE_SV = [5, 6, 8, 10, 12, 15, 20, 30, 45, 60, "Maxed!"];
+	var UPGRADE_GF = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, "Maxed!"];
+	var UPGRADE_GV = [20, 35, 50, 65, 80, 100, 125, 150, 180, 240, "Maxed!"];
+	var COST_BrickGrid = [10, 25, 60, 150, 800, 2500, 10000, 30000, 150000];
+	var COST_BrickHealth = [30, 120, 400, 1000, 5000, 10000, 20000, 40000, 80000];
+	var COST_BallAmount = [20, 60, 150, 600, 4000, 12000, 40000, 100000, 250000];
+	var COST_BallRefill = [1000, 2000, 3000, 4000, 5000, 10000, 20000, 30000, 40000];
+	var COST_SF = [100, 400, 1000, 2500, 6000, 20000, 50000, 200000, 500000];
+	var COST_SV = [100, 400, 1000, 2500, 6000, 20000, 50000, 200000, 500000];
+	var COST_GF = [200, 800, 2000, 5000, 12000, 40000, 100000, 400000, 1000000];
+	var COST_GV = [200, 800, 2000, 5000, 12000, 40000, 100000, 400000, 1000000];
+	var COUNTER_BrickGrid = 0;
+	var COUNTER_BrickHealth = 0;
+	var COUNTER_BallAmount = 0;
+	var COUNTER_BallRefill = 0;
+	var COUNTER_SF = 0;
+	var COUNTER_SV = 0;
+	var COUNTER_GF = 0;
+	var COUNTER_GV = 0;
+	
+	var silverArray = [[]]; //[silverX[], silverY[], spreadSpeedX[], spreadSpeedY[], collectSpeedX[], collectSpeedY[], initialSpreadX[], initialSpeadY[], timerStop[], timer[], status[]]
+    var silverCounter = 0;
+    
+    var goldArray = [[]]; //same as silverArray[[]]
+    var goldCounter = 0;
+    
+    var gemArray = [[]]; //same as silverArray[[]] + type[]
+    var emeraldCounter = 0;
+    var rubyCounter = 0;
+    var amethystCounter = 0;
+    var sapphireCounter = 0;
+    var diamondCounter = 0;
+    var gemCounter = 0;
+    
+    var GEMS_Emerald = true;
+    var GEMS_Ruby = true;
+    var GEMS_Amethyst = true;
+    var GEMS_Sapphire = true;
+    var GEMS_Diamond = true;
+    var GEMS_Splash = true;
+    var GEMS_Autolauncher = true;
+    var GEMS_Click = true;
+    var GEMS_EndGame = true;
+    
+    var emeraldFreq = [Infinity, 100, 75, 50, 30, 20, 15, 10, 7, 5];
+    var rubyFreq = [500, 300, 150, 100, 75, 50, 30, 20, 15, 10];
+    var amethystFreq = [2500, 2000, 1500, 1000, 600, 400, 250, 120, 80, 50];
+    var sapphireFreq = [10000, 8000, 6000, 4000, 2500, 1500, 1000, 800, 650, 500];
+    var diamondFreq = [50000, 45000, 40000, 35000, 30000, 25000, 20000, 15000, 12500, 10000];
+    
+    var freqCounterE = 0;
+    var freqCounterR = 0;
+    var freqCounterA = 0;
+    var freqCounterS = 0;
+    var freqCounterD = 0;
+    
+    var costEmerald = [100000, 150000, 200000, 300000, 500000, 800000, 1500000, 3000000, 5000000, 10000000];
+    var costRuby = [5, 15, 35, 50, 75, 100, 150, 250, 500, 2500];
+    var costAmethyst = [5, 10, 15, 20, 30, 40, 50, 75, 150, 300];
+    var costSapphire = [5, 8, 12, 16, 20, 25, 30, 40, 60, 100];
+    var costDiamond = [1, 2, 3, 4, 5, 7, 10, 15, 20, 25];
+    
+    var xp_needed = [100, 150, 200, 250, 300, 400, 500, 750, 1000, 1250, 1500];
+    var xp_level = 1;
+    var xp_current = 0;
+    
+    var pixelArt1 = ['#222222', '#000000', '#330000', '#330000', '#770000', '#770000', '#EE0000', '#EE0000',
+                    '#000000', '#222222', '#110000', '#110000', '#880000', '#880000', '#FF0000', '#FF0000', 
+                    '#003300', '#000000', '#330000', '#330000', '#770000', '#770000', '#BB0000', '#BB0000', 
+                    '#000000', '#000000', '#112222', '#110000', '#660000', '#660000', '#EE0000', '#EE0000', 
+                    '#000000', '#000000', '#220000', '#220000', '#550000', '#550000', '#AA0000', '#AA0000', 
+                    '#000000', '#000000', '#330000', '#330000', '#660000', '#660000', '#DD0000', '#DD0000', 
+                    '#000000', '#222222', '#110000', '#110000', '#660000', '#660000', '#CC0000', '#CC0000', 
+                    '#000000', '#000000', '#220000', '#220000', '#770000', '#770000', '#EE0000', '#EE0000'];
+	
+	var pixelArt2 = ['#EE0000', '#AA0000', '#770000', '#440000', '#330000', '#000000', '#000000', '#222222',
+                    '#FF0000', '#CC0000', '#880000', '#550000', '#110000', '#000000', '#222222', '#000000', 
+                    '#BB0000', '#990000', '#770000', '#550000', '#330000', '#000000', '#003300', '#000000', 
+                    '#EE0000', '#CC0000', '#660000', '#440000', '#110000', '#222222', '#000000', '#000000', 
+                    '#AA0000', '#880000', '#550000', '#330000', '#220000', '#000000', '#222222', '#000000', 
+                    '#DD0000', '#BB0000', '#660000', '#440000', '#330000', '#000000', '#000000', '#000000', 
+                    '#CC0000', '#AA0000', '#660000', '#330000', '#110000', '#000000', '#000000', '#000000', 
+                    '#EE0000', '#BB0000', '#770000', '#440000', '#220000', '#000000', '#000000', '#000000'];
+	
+	var tutorial = false;
+	var playState = true;
+	var brickResetMode = false;
+	var xpResetMode = false;
+	var ableToOpenMenu = true;
+	var menuCounter = 0;
+	var menuUpAnimation = false;
+	var menuDownAnimation = false;
+	var menuScreen = false;
+	var menuToUpgrades = false;
+	var upgradesToMenu = false;
+	var upgradeScreen = false;
+	var upgradeCounter = 0;
+	var gemActive = false;
+	var gemScreen = false;
+	var soundFX = true;
+	
+	var totalBallLaunches = 0;
+	var totalBrickBreaks = 0;
+	var totalBrickResets = 0;
+	var totalMoneyEarned = 0;
+	
+	var mouseX;
+	var mouseY;
+	
+	var frameCounter = 0;
+	
+	var canvas, canvasContext;
+	function updateMousePos(evt) {
+		var rect = canvas.getBoundingClientRect();
+		var root = document.documentElement;
+	
+		mouseX = evt.clientX - rect.left;
+		mouseY = evt.clientY - rect.top;
+	}
+	
+	window.onload = function() {
+		canvas = document.getElementById('gameCanvas');
+		canvasContext = canvas.getContext('2d');
+	
+		var framesPerSecond = 60;
+		setInterval(updateAll, 1000/framesPerSecond);
+	
+		canvas.addEventListener('mousemove', updateMousePos);
+		canvas.addEventListener('mousedown', doALotOfThings);
+		canvas.addEventListener('mouseup', doEvenMoreThings);
+		brickReset();
+		console.log(brickGrid);
+	}
+	
+	function updateAll(){
+		moveAll();
+		drawAll();
+		frameCounter++;
+	}
+	
+	function moveAll(){
+	    refillPause = false;
+		for (var i = 0; i < ballArray.length; i++){
+		    ballArray[i][0] += ballArray[i][2];
+		    ballArray[i][1] += ballArray[i][3];
+		    ballArray[i][4]++;
+		    if (ballArray[i][0] - BALL_RADIUS <= (canvas.width - 400)/2 || ballArray[i][0] + BALL_RADIUS >= (canvas.width - 200)){
+		        ballArray[i][2] = -ballArray[i][2];
+		    }
+		    if (ballArray[i][1] - BALL_RADIUS <= 0 && ballArray[i][3] < 0.0){
+		        ballArray[i][3] = -ballArray[i][3];
+		    }
+		    if (ballArray[i][1] < 600 && ballCounter == BALL_AMOUNT){
+		        refillPause = true;
+		    }
+		}
+		brickCollisions();
+		if (ballCounter == BALL_AMOUNT && refillPause){
+		    refillT = Math.PI*3/2;
+		}
+		
+		for (var i = 0; i < silverArray.length; i++){
+		    silverArray[i][0] += silverArray[i][2];
+		    silverArray[i][1] += silverArray[i][3];
+		    if (silverArray[i][9] < 25){
+		        silverArray[i][2] -= silverArray[i][6]/25;
+		        silverArray[i][3] -= silverArray[i][7]/25;
+		    }else if (silverArray[i][9] == 25){
+		        var distX = 660 - silverArray[i][0];
+		        var distY = 177.5 - silverArray[i][1];
+		        var hyp = Math.sqrt(distX*distX + distY*distY);
+	            var ratio = 10/hyp;
+	            silverArray[i][4] = distX*ratio;
+	            silverArray[i][5] = distY*ratio;
+	            
+		    }
+		    if (silverArray[i][9] >= silverArray[i][8] && silverArray[i][0] < 660){
+		        silverArray[i][0] += silverArray[i][4];
+		        silverArray[i][1] += silverArray[i][5];
+		    }else if (silverArray[i][0] > 660 && silverArray[i][10]){
+		        silverArray[i][10] = false;
+		        MONEY_NOW += UPGRADE_SV[COUNTER_SV];
+		        totalMoneyEarned += UPGRADE_SV[COUNTER_SV]
+		    }
+		    silverArray[i][9]++;
+		}
+		for (var i = 0; i < goldArray.length; i++){
+		    goldArray[i][0] += goldArray[i][2];
+		    goldArray[i][1] += goldArray[i][3];
+		    if (goldArray[i][9] < 25){
+		        goldArray[i][2] -= goldArray[i][6]/25;
+		        goldArray[i][3] -= goldArray[i][7]/25;
+		    }else if (goldArray[i][9] == 25){
+		        var distX = 660 - goldArray[i][0];
+		        var distY = 177.5 - goldArray[i][1];
+		        var hyp = Math.sqrt(distX*distX + distY*distY);
+	            var ratio = 10/hyp;
+	            goldArray[i][4] = distX*ratio;
+	            goldArray[i][5] = distY*ratio;
+	            
+		    }
+		    if (goldArray[i][9] >= goldArray[i][8] && goldArray[i][0] < 660){
+		        goldArray[i][0] += goldArray[i][4];
+		        goldArray[i][1] += goldArray[i][5];
+		    }else if (goldArray[i][0] > 660 && goldArray[i][10]){
+		        goldArray[i][10] = false;
+		        MONEY_NOW += UPGRADE_GV[COUNTER_GV];
+		        totalMoneyEarned += UPGRADE_GV[COUNTER_GV];
+		    }
+		    goldArray[i][9]++;
+		}
+		for (var i = 0; i < gemArray.length; i++){
+		    gemArray[i][0] += gemArray[i][2];
+		    gemArray[i][1] += gemArray[i][3];
+		    if (gemArray[i][9] < 75){
+		        gemArray[i][2] -= gemArray[i][6]/75;
+		        gemArray[i][3] -= gemArray[i][7]/75;
+		    }else if (gemArray[i][9] == 75){
+		        var distX = 660 - gemArray[i][0];
+		        if (gemArray[i][11] == "emerald"){
+		            var distY = 212 - gemArray[i][1];
+		        }
+		        if (gemArray[i][11] == "ruby"){
+		            var distY = 237 - gemArray[i][1];
+		        }
+		        if (gemArray[i][11] == "amethyst"){
+		            var distY = 262 - gemArray[i][1];
+		        }
+		        if (gemArray[i][11] == "sapphire"){
+		            var distY = 287 - gemArray[i][1];
+		        }
+		        if (gemArray[i][11] == "diamond"){
+		            var distY = 312 - gemArray[i][1];
+		        }
+		        var hyp = Math.sqrt(distX*distX + distY*distY);
+	            var ratio = 10/hyp;
+	            gemArray[i][4] = distX*ratio;
+	            gemArray[i][5] = distY*ratio;
+	            
+		    }
+		    if (gemArray[i][9] >= 75 && gemArray[i][0] < 660){
+		        gemArray[i][0] += gemArray[i][4];
+		        gemArray[i][1] += gemArray[i][5];
+		    }else if (gemArray[i][0] > 660 && gemArray[i][10]){
+		        gemArray[i][10] = false;
+		        if (gemArray[i][11] == "emerald"){
+        	        emeraldCounter++;
+        	    }
+        	    if (gemArray[i][11] == "ruby"){
+        	        rubyCounter++;      
+    	        }
+        	    if (gemArray[i][11] == "amethyst"){
+        	        amethystCounter++;
+        	    }
+        	    if (gemArray[i][11] == "sapphire"){
+        	        sapphireCounter++;
+        	    }
+        	    if (gemArray[i][11] == "diamond"){
+        	        diamondCounter++;
+        	    }
+	   	    }
+     		gemArray[i][9]++;
+		}
+		for (var i = 0; i < brokenBricks.length; i++){
+		    if (brokenBricks[i][5]){
+		        brokenBricks[i][2]++;
+		    }else{
+		        brokenBricks[i][2]--;
+		    }
+		    brokenBricks[i][0] += brokenBricks[i][3];
+		    brokenBricks[i][1] += brokenBricks[i][4];
+		    brokenBricks[i][4] += 0.05;
+		}
+		if (menuUpAnimation){
+		    menuCounter++;
+		    if (menuCounter >= 30){
+		        menuUpAnimation = false;
+		    }
+		}
+		if (menuDownAnimation){
+		    menuCounter--;
+		    if (menuCounter <= 0){
+		        menuDownAnimation = false;
+		        menuScreen = false;
+		    }
+		}
+	}
+	
+	function drawAll(){
+		colorRect(0, 0, canvas.width, canvas.height, 'black');
+		colorRect(0, 0, canvas.width, canvas.height, 'rgb(128, 240, 128)');
+		colorRect(630, 0, 170, canvas.height, 'rgb(240, 255, 150)');
+		//console.log(rowColToArrayIndex(Math.floor((mouseX - 200)/BRICK_W), Math.floor(mouseY/BRICK_H)));
+		xp();
+		ballSetUp();
+		refillCircle();
+		upgradeIcon();
+		coinGemAmounts();
+		brickSetUp();
+		if (brickResetMode){
+		    brickResetAnimation();
+		}
+		if (xpResetMode){
+		    xpResetAnimation();
+		}
+		coins();
+		if (menuScreen){
+		    colorRect(100, 100 + 500/900*(30 - menuCounter)*(30 - menuCounter), 600, 400, '#FF7722');
+		    if (mouseX > 110 && mouseX < 395 && mouseY > 110 && mouseY < 295){
+		        colorRect(110, 110 + 500/900*(30 - menuCounter)*(30 - menuCounter), 285, 185, '#FFAA66');
+		    }else{
+		        colorRect(110, 110 + 500/900*(30 - menuCounter)*(30 - menuCounter), 285, 185, '#FF9955');
+		    }
+		    if (mouseX > 405 && mouseX < 690 && mouseY > 110 && mouseY < 295){
+		        colorRect(405, 110 + 500/900*(30 - menuCounter)*(30 - menuCounter), 285, 185, '#777777');
+		    }else{
+		        colorRect(405, 110 + 500/900*(30 - menuCounter)*(30 - menuCounter), 285, 185, '#777777');
+		    }
+		    if (mouseX > 110 && mouseX < 395 && mouseY > 305 && mouseY < 490){
+		        colorRect(110, 305 + 500/900*(30 - menuCounter)*(30 - menuCounter), 285, 185, '#FF9955');
+		    }else{
+		        colorRect(110, 305 + 500/900*(30 - menuCounter)*(30 - menuCounter), 285, 185, '#FF9955');
+		    }
+		    if (mouseX > 405 && mouseX < 690 && mouseY > 305 && mouseY < 490){
+		        colorRect(405, 305 + 500/900*(30 - menuCounter)*(30 - menuCounter), 285, 185, '#777777');
+		    }else{
+		        colorRect(405, 305 + 500/900*(30 - menuCounter)*(30 - menuCounter), 285, 185, '#777777');
+		    }
+		    createPhrase("upgrades", 155, 120 + 500/900*(30 - menuCounter)*(30 - menuCounter), 7, "#FFCC77");
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(205, 215 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(195, 215 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(222.5, 155 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(250, 215 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(240, 215 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(240, 225 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(205, 225 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(205, 215 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineWidth = 6;
+		    canvasContext.strokeStyle = '#00DD00';
+		    canvasContext.stroke();
+		    canvasContext.fillStyle = '#22FF22';
+		    canvasContext.fill();
+		    colorRect(205, 230 + 500/900*(30 - menuCounter)*(30 - menuCounter), 35, 15, '#22FF22');
+		    colorRect(205, 250 + 500/900*(30 - menuCounter)*(30 - menuCounter), 35, 15, '#22FF22');
+		    colorRect(205, 270 + 500/900*(30 - menuCounter)*(30 - menuCounter), 35, 15, '#22FF22');
+		    canvasContext.lineWidth = 3;
+		    canvasContext.strokeRect(205, 230 + 500/900*(30 - menuCounter)*(30 - menuCounter), 35, 15);
+		    canvasContext.strokeRect(205, 250 + 500/900*(30 - menuCounter)*(30 - menuCounter), 35, 15);
+		    canvasContext.strokeRect(205, 270 + 500/900*(30 - menuCounter)*(30 - menuCounter), 35, 15);
+		    for (var i = 0; i < 9; i++){
+		        canvasContext.beginPath();
+		        canvasContext.ellipse(280, 260 + 500/900*(30 - menuCounter)*(30 - menuCounter) - 7*i, 40, 15, 0, 0, Math.PI*2, false);
+		        canvasContext.fillStyle = '#999999';
+		        canvasContext.strokeStyle = '#888888';
+		        if (i % 4 == 1){
+		            canvasContext.fillStyle = '#EECC00';
+		            canvasContext.strokeStyle = '#DDBB00';
+		        }
+		        canvasContext.fill();
+		        canvasContext.stroke();
+		    }
+		    createPhrase("coming soon", 412, 120 + 500/900*(30 - menuCounter)*(30 - menuCounter), 7, "#555555");
+		    /*var shifterX = 500;
+		    var shifterY = 220;
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(shifterX + 0, shifterY + 0 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 80, shifterY + 32 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 78, shifterY + 42 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 8, shifterY + 10 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.fillStyle = '#00DD00';
+		    canvasContext.fill();
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(shifterX + 80, shifterY + 32 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 120, shifterY + 0 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 116, shifterY + 10 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 78, shifterY + 42 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.fillStyle = '#00CC00';
+		    canvasContext.fill();
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(shifterX + 0, shifterY + 0 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 8, shifterY - 7 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 78, shifterY + 20 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 80, shifterY + 32 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.fillStyle = '#00EE00';
+		    canvasContext.fill();
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(shifterX + 80, shifterY + 32 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 78, shifterY + 20 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 116, shifterY - 7 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 120, shifterY + 0 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.fillStyle = '#00DD00';
+		    canvasContext.fill();
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(shifterX + 8, shifterY - 7 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 78, shifterY + 20 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 116, shifterY - 7 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.lineTo(shifterX + 50, shifterY - 25 + 500/900*(30 - menuCounter)*(30 - menuCounter));
+		    canvasContext.fillStyle = '#00FF00';
+		    canvasContext.fill();
+		    makeDiamond(525, 195 + 500/900*(30 - menuCounter)*(30 - menuCounter), 2);*/
+		    createPhrase("stats", 186, 315 + 500/900*(30 - menuCounter)*(30 - menuCounter), 7, "#FFCC77");
+		    colorText("Total ball launches: " + totalBallLaunches, "20px Arial", 120, 375 + 500/900*(30 - menuCounter)*(30 - menuCounter), "black");
+		    colorText("Total brick breaks: " + totalBrickBreaks, "20px Arial", 120, 400 + 500/900*(30 - menuCounter)*(30 - menuCounter), "black");
+		    colorText("Total brick resets: " + (totalBrickResets - 1), "20px Arial", 120, 425 + 500/900*(30 - menuCounter)*(30 - menuCounter), "black");
+		    colorText("Total money earned: " + totalMoneyEarned, "20px Arial", 120, 450 + 500/900*(30 - menuCounter)*(30 - menuCounter), "black");
+		    /*createPhrase("sound", 486, 315 + 500/900*(30 - menuCounter)*(30 - menuCounter), 7, "#FFCC77");
+		    if (soundFX){
+		        createPhrase("on", 500, 380 + 500/900*(30 - menuCounter)*(30 - menuCounter), 14, "#33FF33");
+		    }else{
+		        createPhrase("off", 480, 380 + 500/900*(30 - menuCounter)*(30 - menuCounter), 14, "#FF3333");
+		    }*/
+		}
+		if (upgradeScreen){
+		    colorRect(100, 100, 600, 400, '#FF7722');
+		    canvasContext.lineWidth = 5;
+		    canvasContext.strokeStyle = '#FF5500';
+		    canvasContext.strokeRect(100, 100, 600, 400);
+		    for (var i = 0; i < COUNTER_BrickGrid; i++){
+		        colorRect(110, 456 - i*44, 70, 38, '#882255');
+		    }
+		    for (var i = 0; i < COUNTER_BrickHealth; i++){
+		        colorRect(183, 456 - i*44, 70, 38, '#992255');
+		    }
+		    for (var i = 0; i < COUNTER_BallAmount; i++){
+		        colorRect(256, 456 - i*44, 70, 38, '#AA2555');
+		    }
+		    for (var i = 0; i < COUNTER_BallRefill; i++){
+		        colorRect(329, 456 - i*44, 70, 38, '#BB2255');
+		    }
+		    for (var i = 0; i < COUNTER_SF; i++){
+		        colorRect(402, 456 - i*44, 70, 38, '#CC2255');
+		    }
+		    for (var i = 0; i < COUNTER_SV; i++){
+		        colorRect(475, 456 - i*44, 70, 38, '#DD2255');
+		    }
+		    for (var i = 0; i < COUNTER_GF; i++){
+		        colorRect(548, 456 - i*44, 70, 38, '#EE2255');
+		    }
+		    for (var i = 0; i < COUNTER_GV; i++){
+		        colorRect(621, 456 - i*44, 70, 38, '#FF2255');
+		    }
+		    for (var i = 0; i < 8; i++){
+		        colorRect(115 + 73*i, 425, 60, 60, '#FF9955');
+		        if (mouseX >= 115 + 73*i && mouseX <= 175 + 73*i && mouseY >= 425 && mouseY <= 485){
+		            colorRect(115 + 73*i, 425, 60, 60, '#FFAA66');
+		        }
+		    }
+		    
+		    colorCircle(355, 125, 16, '#DDBB00');
+    	    colorCircle(355, 125, 14, '#EECC00');
+    	    colorCircle(350, 130, 16, '#888888');
+    	    colorCircle(350, 130, 14, '#999999');
+    	    createPhrase("" + MONEY_NOW, 385, 115, 6, "#000000");
+    	    
+		    
+		    if (mouseX >= 115 && mouseX <= 175 && mouseY >= 425 && mouseY <= 485){
+		        colorRect(95, 505, 100, 80, '#444444');
+		        colorRect(98, 508, 94, 74, '#888888');
+		        colorText("Brick Grid", "14px Arial", 115, 522, 'black');
+		        colorText("Size", "14px Arial", 131, 537, 'black');
+		        colorText("Current: " + UPGRADE_BrickGrid[COUNTER_BrickGrid] + "x" + UPGRADE_BrickGrid[COUNTER_BrickGrid], "12px Arial", 100, 565, 'black');
+		        if (COUNTER_BrickGrid < 9){
+		            colorText("Next: " + UPGRADE_BrickGrid[COUNTER_BrickGrid + 1] + "x" + UPGRADE_BrickGrid[COUNTER_BrickGrid + 1], "12px Arial", 100, 580, '#004400');
+		            colorText("Costs: " + COST_BrickGrid[COUNTER_BrickGrid], "12px Arial", 100, 551, '#FFFF33');
+		        }else{
+		            colorText("Next: " + UPGRADE_BrickGrid[COUNTER_BrickGrid + 1], "12px Arial", 100, 580, '#004400');
+		        }
+		    }
+		    if (mouseX >= 188 && mouseX <= 248 && mouseY >= 425 && mouseY <= 485){
+		        colorRect(168, 505, 100, 80, '#444444');
+		        colorRect(171, 508, 94, 74, '#888888');
+		        colorText("Brick Health", "14px Arial", 180, 522, 'black');
+		        colorText("Current: " + UPGRADE_BrickHealth[COUNTER_BrickHealth], "12px Arial", 173, 565, 'black');
+		        colorText("Next: " + UPGRADE_BrickHealth[COUNTER_BrickHealth + 1], "12px Arial", 173, 580, '#004400');
+		        if (COUNTER_BrickHealth < 9){
+		            colorText("Costs: " + COST_BrickHealth[COUNTER_BrickHealth], "12px Arial", 173, 551, '#FFFF33');
+		        }
+		    }
+		    if (mouseX >= 261 && mouseX <= 321 && mouseY >= 425 && mouseY <= 485){
+		        colorRect(241, 505, 100, 80, '#444444');
+		        colorRect(244, 508, 94, 74, '#888888');
+		        colorText("Ball Amount", "14px Arial", 253, 522, 'black');
+	            colorText("Current: " + UPGRADE_BallAmount[COUNTER_BallAmount], "12px Arial", 246, 565, 'black');
+		        colorText("Next: " + UPGRADE_BallAmount[COUNTER_BallAmount + 1], "12px Arial", 246, 580, '#004400');
+		        if (COUNTER_BallAmount < 9){
+		            colorText("Costs: " + COST_BallAmount[COUNTER_BallAmount], "12px Arial", 246, 551, '#FFFF33');
+		        }
+		    }
+		    if (mouseX >= 334 && mouseX <= 394 && mouseY >= 425 && mouseY <= 485){
+		        colorRect(314, 505, 100, 80, '#444444');
+		        colorRect(317, 508, 94, 74, '#888888');
+		        colorText("Ball Refill", "14px Arial", 335, 522, 'black');
+		        colorText("Time", "14px Arial", 350, 537, 'black');
+		        colorText("Current: " + UPGRADE_BallRefill[COUNTER_BallRefill]/30 + " sec", "12px Arial", 319, 565, 'black');
+		        if (COUNTER_BallRefill < 9){
+		            colorText("Next: " + UPGRADE_BallRefill[COUNTER_BallRefill + 1]/30 + " sec", "12px Arial", 319, 580, '#004400');
+		        }else{
+		            colorText("Next: " + UPGRADE_BallRefill[COUNTER_BallRefill + 1], "12px Arial", 319, 580, '#004400');
+		        }
+		        if (COUNTER_BallRefill < 9){
+		            colorText("Costs: " + COST_BallRefill[COUNTER_BallRefill], "12px Arial", 319, 551, '#FFFF33');
+		        }
+		    }
+		    if (mouseX >= 407 && mouseX <= 467 && mouseY >= 425 && mouseY <= 485){
+		        colorRect(387, 505, 100, 80, '#444444');
+		        colorRect(390, 508, 94, 74, '#888888');
+		        colorText("Silver", "14px Arial", 418, 522, 'black');
+		        colorText("Frequency", "14px Arial", 406, 537, 'black');
+		        colorText("Current: " + UPGRADE_SF[COUNTER_SF], "12px Arial", 392, 565, 'black');
+		        colorText("Next: " + UPGRADE_SF[COUNTER_SF + 1], "12px Arial", 392, 580, '#004400');
+		        if (COUNTER_SF < 9){
+		            colorText("Costs: " + COST_SF[COUNTER_SF], "12px Arial", 392, 551, '#FFFF33');
+		        }
+		    }
+		    if (mouseX >= 480 && mouseX <= 540 && mouseY >= 425 && mouseY <= 485){
+		        colorRect(460, 505, 100, 80, '#444444');
+		        colorRect(463, 508, 94, 74, '#888888');
+		        colorText("Silver Value", "14px Arial", 474, 522, 'black');
+		        colorText("Current: " + UPGRADE_SV[COUNTER_SV], "12px Arial", 465, 565, 'black');
+		        colorText("Next: " + UPGRADE_SV[COUNTER_SV + 1], "12px Arial", 465, 580, '#004400');
+		        if (COUNTER_SV < 9){
+		            colorText("Costs: " + COST_SV[COUNTER_SV], "12px Arial", 465, 551, '#FFFF33');
+		        }
+		    }
+		    if (mouseX >= 553 && mouseX <= 613 && mouseY >= 425 && mouseY <= 485){
+		        colorRect(533, 505, 100, 80, '#444444');
+		        colorRect(536, 508, 94, 74, '#888888');
+		        colorText("Gold", "14px Arial", 568, 522, 'black');
+		        colorText("Frequency", "14px Arial", 552, 537, 'black');
+		        colorText("Current: " + UPGRADE_GF[COUNTER_GF], "12px Arial", 538, 565, 'black');
+		        colorText("Next: " + UPGRADE_GF[COUNTER_GF + 1], "12px Arial", 538, 580, '#004400');
+		        if (COUNTER_GF < 9){
+		            colorText("Costs: " + COST_GF[COUNTER_GF], "12px Arial", 538, 551, '#FFFF33');
+		        }
+		    }
+		    if (mouseX >= 626 && mouseX <= 686 && mouseY >= 425 && mouseY <= 485){
+		        colorRect(606, 505, 100, 80, '#444444');
+		        colorRect(609, 508, 94, 74, '#888888');
+		        colorText("Gold Value", "14px Arial", 621, 522, 'black')
+		        colorText("Current: " + UPGRADE_GV[COUNTER_GV], "12px Arial", 611, 565, 'black');
+		        colorText("Next: " + UPGRADE_GV[COUNTER_GV + 1], "12px Arial", 611, 580, '#004400');
+		        if (COUNTER_GV < 9){
+		            colorText("Costs: " + COST_GV[COUNTER_GV], "12px Arial", 611, 551, '#FFFF33');
+		        }
+		    }
+		    colorRect(121, 431, 21, 21, 'rgb(128, 0, 128)');
+		    colorRect(121, 458, 21, 21, 'rgb(128, 0, 128)');
+		    colorRect(148, 431, 21, 21, 'rgb(128, 0, 128)');
+		    colorRect(148, 458, 21, 21, 'rgb(128, 0, 128)');
+		    //----------------------------------------------//
+		    colorRect(193, 435, 50, 40, 'rgb(128, 0, 128)');
+		    var arrowShifterX = 185;
+		    var arrowShifterY = 425;
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(arrowShifterX + 20, arrowShifterY);
+		    canvasContext.lineTo(arrowShifterX + 30, arrowShifterY + 20);
+		    canvasContext.lineTo(arrowShifterX + 25, arrowShifterY + 20);
+		    canvasContext.lineTo(arrowShifterX + 25, arrowShifterY + 35);
+		    canvasContext.lineTo(arrowShifterX + 15, arrowShifterY + 35);
+		    canvasContext.lineTo(arrowShifterX + 15, arrowShifterY + 20);
+		    canvasContext.lineTo(arrowShifterX + 10, arrowShifterY + 20);
+		    canvasContext.fillStyle = '#00DD00';
+		    canvasContext.fill();
+		    //----------------------------------------------//
+		    colorCircle(283, 455, 20, 'white');
+		    for (var i = 0; i < 4; i++){
+		        colorCircle(311, 435 + i*13, 5, 'white');
+		    }
+		    makePlus(268, 440, 5, 'green');
+		    //----------------------------------------------//
+		    //for (var i = 0; i < COUNTER)
+		    canvasContext.beginPath();
+		    canvasContext.arc(364, 455, 25, -Math.PI/2, -Math.PI*1/4, true);
+		    canvasContext.lineTo(364, 455);
+		    canvasContext.fillStyle = 'white';
+		    canvasContext.fill();
+		    canvasContext.beginPath();
+		    canvasContext.arc(364, 455, 18, -Math.PI*5/8, 0, true);
+		    canvasContext.lineWidth = 5;
+		    canvasContext.strokeStyle = 'orange';
+		    canvasContext.stroke();
+		    canvasContext.closePath();
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(377, 455);
+		    canvasContext.lineTo(382, 447);
+		    canvasContext.lineTo(387, 455);
+		    canvasContext.fillStyle = 'orange';
+		    canvasContext.fill();
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(355, 470);
+		    canvasContext.lineTo(365, 465);
+		    canvasContext.lineTo(355, 460);
+		    canvasContext.lineWidth = 4;
+		    canvasContext.strokeStyle = 'red';
+		    canvasContext.stroke();
+		    canvasContext.closePath();
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(365, 470);
+		    canvasContext.lineTo(375, 465);
+		    canvasContext.lineTo(365, 460);
+		    canvasContext.lineWidth = 4;
+		    canvasContext.strokeStyle = 'red';
+		    canvasContext.stroke();
+		    canvasContext.closePath();
+		    //----------------------------------------------//
+		    colorCircle(432, 450, 21, '#707070');
+		    colorCircle(432, 450, 18, '#777777');
+		    colorCircle(442, 460, 21, '#808080');
+		    colorCircle(442, 460, 18, '#888888');
+		    createPhrase('%', 415, 460, 5, 'black'); 
+		    //----------------------------------------------//
+		    colorCircle(505, 450, 21, '#707070');
+		    colorCircle(505, 450, 18, '#777777');
+		    colorCircle(515, 460, 21, '#808080');
+		    colorCircle(515, 460, 18, '#888888');
+		    canvasContext.beginPath();
+		    canvasContext.arc(491, 466, 4, Math.PI*7/4, Math.PI*3/2, true);
+		    canvasContext.lineTo(489, 462);
+		    canvasContext.arc(489, 466, 4, Math.PI*3/2, Math.PI/2, true);
+		    canvasContext.lineTo(491, 470);
+		    canvasContext.arc(491, 474, 4, Math.PI*3/2, Math.PI/2, false);
+		    canvasContext.lineTo(489, 478);
+		    canvasContext.arc(489, 474, 4, Math.PI/2, Math.PI*3/4, false);
+		    canvasContext.lineWidth = 5;
+		    canvasContext.strokeStyle = 'black';
+		    canvasContext.stroke();
+		    canvasContext.closePath();
+		    colorRect(488.5, 457.5, 3, 25, 'black');
+		    //----------------------------------------------//
+		    colorCircle(583, 455, 25, '#DDBB00');
+		    colorCircle(583, 455, 22, '#EEBB00');
+		    createPhrase('%', 561, 460, 5, 'black');
+		    //----------------------------------------------//
+		    colorCircle(656, 455, 25, '#DDBB00');
+		    colorCircle(656, 455, 22, '#EEBB00');
+		    canvasContext.beginPath();
+		    canvasContext.arc(637, 466, 4, Math.PI*7/4, Math.PI*3/2, true);
+		    canvasContext.lineTo(635, 462);
+		    canvasContext.arc(635, 466, 4, Math.PI*3/2, Math.PI/2, true);
+		    canvasContext.lineTo(637, 470);
+		    canvasContext.arc(637, 474, 4, Math.PI*3/2, Math.PI/2, false);
+		    canvasContext.lineTo(635, 478);
+		    canvasContext.arc(635, 474, 4, Math.PI/2, Math.PI*3/4, false);
+		    canvasContext.lineWidth = 5;
+		    canvasContext.strokeStyle = 'black';
+		    canvasContext.stroke();
+		    canvasContext.closePath();
+		    colorRect(634.5, 457.5, 3, 25, 'black');
+		}
+		if (gemScreen){
+		    colorRect(100, 100, 600, 400, '#005555');
+		    canvasContext.lineWidth = 5;
+		    canvasContext.strokeStyle = '#003333';
+		    canvasContext.strokeRect(100, 100, 600, 400);
+		    if (GEMS_Emerald){
+		        colorRect(110, 110, 200, 68, '#55FF55');
+		        createPhrase("emerald", 158, 120, 5, "#33EE33");
+		        makeEmerald(144, 143, 1);
+		        colorCircle()
+		    }else{
+		        colorRect(110, 110, 200, 68, 'gray');
+		        colorText("Unlocked at level", "20px Arial", 120, 153, '#444444');
+		        createPhrase("3", 280, 131, 7, "#44CCCC");
+		    }
+		    if (GEMS_Ruby){
+		        colorRect(110, 188, 200, 68, '#FF6666');
+		        createPhrase("ruby", 158, 198, 5, '#EE4444');
+		        makeRuby(144, 221, 1);
+		    }else{
+		        colorRect(110, 188, 200, 68, 'gray');
+		        colorText("Unlocked at level", "20px Arial", 120, 231, '#444444');
+		        createPhrase("4", 280, 209, 7, "#44CCCC");
+		    }  
+		    if (GEMS_Amethyst){
+		        colorRect(110, 266, 200, 68, '#FF66FF');
+		        createPhrase("amethyst", 158, 276, 5, '#EE44EE');
+		        makeAmethyst(144, 299, 1);
+		    }else{
+		        colorRect(110, 266, 200, 68, 'gray');
+		        colorText("Unlocked at level", "20px Arial", 120, 309, '#444444');
+		        createPhrase("5", 280, 287, 7, "#44CCCC");
+		    }  
+		    if (GEMS_Sapphire){
+		        colorRect(110, 344, 200, 68, '#6666FF');
+		        createPhrase("sapphire", 158, 354, 5, '#4444EE');
+		        makeSapphire(144, 376, 1);
+		    }else{
+		        colorRect(110, 344, 200, 68, 'gray');
+		        colorText("Unlocked at level", "20px Arial", 120, 387, '#444444');
+		        createPhrase("6", 280, 365, 7, "#44CCCC");
+		    }  
+		    if (GEMS_Diamond){
+		        colorRect(110, 422, 200, 68, '#66FFFF');
+		        createPhrase("diamond", 158, 432, 5, '#44EEEE');
+		        makeDiamond(144, 448, 1.2);
+		    }else{
+		        colorRect(110, 422, 200, 68, 'gray');
+		        colorText("Unlocked at level", "20px Arial", 120, 465, '#444444');
+		        createPhrase("8", 280, 443, 7, "#44CCCC");
+		    }
+		    
+		    if (GEMS_EndGame){
+		        colorRect(320, 110, 370, 380, 'red');
+		    }else{
+		        colorRect(320, 110, 180, 185, 'gray');
+		        colorText("Unlocked at", "20px Arial", 355, 160, '#444444');
+		        colorText("level", "20px Arial", 385, 180, '#444444');
+		        createPhrase("10", 393, 185, 7, '#44CCCC');
+		    }
+		}
+		if (refillHint){
+		    colorText("Hover over with your", "25px Arial", 400, 80, '#33FFFF');
+		    colorText("mouse to refill", "25px Arial", 420, 105, '#33FFFF');
+		    var shxfter = 655;
+		    var shyfter = 84;
+		    canvasContext.beginPath();
+		    canvasContext.moveTo(shxfter + 0 + Math.cos(frameCounter/20)*12, shyfter - 5);
+		    canvasContext.lineTo(shxfter + 20 + Math.cos(frameCounter/20)*12, shyfter - 5);
+		    canvasContext.lineTo(shxfter + 30 + Math.cos(frameCounter/20)*12, shyfter + 0);
+		    canvasContext.lineTo(shxfter + 20 + Math.cos(frameCounter/20)*12, shyfter + 5);
+		    canvasContext.lineTo(shxfter + 0 + Math.cos(frameCounter/20)*12, shyfter + 5);
+		    canvasContext.lineTo(shxfter + 0 + Math.cos(frameCounter/20)*12, shyfter - 5);
+		    canvasContext.lineWidth = 2;
+		    canvasContext.strokeStyle = "#00CC00";
+		    canvasContext.stroke();
+		    canvasContext.fillStyle = "#00FF00";
+		    canvasContext.fill();
+		}
+	}
+	
+	function brickSetUp(){
+		for (var i = 0; i < BRICK_AMOUNT; i++){
+			for (var j = 0; j < BRICK_AMOUNT; j++){
+			    if (brickGrid[j + i*BRICK_AMOUNT] != 0){
+				    colorRect(j*BRICK_W + (canvas.width - 400)/2 + BRICK_O, i*BRICK_H + BRICK_O, BRICK_W - 2*BRICK_O, BRICK_H - 2*BRICK_O, 'rgb(128, 0, 128)');
+			    }
+			}
+		}
+		for (var i = 0; i < 19; i++){
+			make4x4Grid((canvas.width - 400)/2 - 32, i*32, 4, pixelArt1);
+			make4x4Grid(canvas.width - 200, i*32, 4, pixelArt2);
+		}
+		for (var i = 0; i < brokenBricks.length; i++){
+		    if (brokenBricks[i][1] <= 800){
+		        canvasContext.beginPath();
+		        canvasContext.moveTo(brokenBricks[i][0] + Math.cos(brokenBricks[i][2]/brokenBricks[i][6] + 0.643)*(Math.sqrt(BRICK_W*BRICK_W + BRICK_H*BRICK_H)/2 - BRICK_O), brokenBricks[i][1] + Math.sin(brokenBricks[i][2]/brokenBricks[i][6] + 0.643)*(Math.sqrt(BRICK_W*BRICK_W + BRICK_H*BRICK_H)/2 - BRICK_O));
+		        canvasContext.lineTo(brokenBricks[i][0] + Math.cos(brokenBricks[i][2]/brokenBricks[i][6] + Math.PI - 0.643)*(Math.sqrt(BRICK_W*BRICK_W + BRICK_H*BRICK_H)/2 - BRICK_O), brokenBricks[i][1] + Math.sin(brokenBricks[i][2]/brokenBricks[i][6] + Math.PI - 0.643)*(Math.sqrt(BRICK_W*BRICK_W + BRICK_H*BRICK_H)/2 - BRICK_O));
+		        canvasContext.lineTo(brokenBricks[i][0] + Math.cos(brokenBricks[i][2]/brokenBricks[i][6] + Math.PI + 0.643)*(Math.sqrt(BRICK_W*BRICK_W + BRICK_H*BRICK_H)/2 - BRICK_O), brokenBricks[i][1] + Math.sin(brokenBricks[i][2]/brokenBricks[i][6] + Math.PI + 0.643)*(Math.sqrt(BRICK_W*BRICK_W + BRICK_H*BRICK_H)/2 - BRICK_O));
+		        canvasContext.lineTo(brokenBricks[i][0] + Math.cos(brokenBricks[i][2]/brokenBricks[i][6] + Math.PI*2 - 0.643)*(Math.sqrt(BRICK_W*BRICK_W + BRICK_H*BRICK_H)/2 - BRICK_O), brokenBricks[i][1] + Math.sin(brokenBricks[i][2]/brokenBricks[i][6] + Math.PI*2 - 0.643)*(Math.sqrt(BRICK_W*BRICK_W + BRICK_H*BRICK_H)/2 - BRICK_O));
+		        canvasContext.fillStyle = 'rgb(128, ' + Math.abs(brokenBricks[i][2]) + ', 128)';
+		        if (Math.abs(brokenBricks[i][2]) >= 128){
+		            canvasContext.fillStyle = 'rgb(128, 128, 128)';
+		        }
+		        canvasContext.fill();
+		    }
+		}
+	}
+	
+	function ballSetUp(){
+	    if (!(ballCounter == BALL_AMOUNT)){
+		    colorCircle(canvas.width/2, 550, BALL_RADIUS, 'white');
+		}
+		for (var i = 0; i < ballArray.length; i++){
+		    colorCircle(ballArray[i][0], ballArray[i][1], BALL_RADIUS, 'white');
+		}
+	}
+	
+	function brickCollisions(){
+	    for (var i = 0; i < ballArray.length; i++){
+	        ballTest = true;
+	        for (var r = 0; r < 8; r++){
+	       	    var ballBrickCol = Math.floor((ballArray[i][0] - 200 + Math.cos(r*Math.PI/4)*BALL_RADIUS)/BRICK_W);
+                var ballBrickRow = Math.floor((ballArray[i][1] + Math.sin(r*Math.PI/4)*BALL_RADIUS)/BRICK_H);
+            	var brickIndexUnderBall = rowColToArrayIndex(ballBrickCol, ballBrickRow);
+            	if (ballBrickCol >= 0 && ballBrickCol < BRICK_AMOUNT && ballBrickRow >= 0 && ballBrickRow < BRICK_AMOUNT){
+            		if (isBrickAtColRow(ballBrickCol, ballBrickRow) != 0 && ballTest){
+            			var prevBallX = (ballArray[i][0] - 200 + Math.cos(r*Math.PI/4)*BALL_RADIUS) - ballArray[i][2]*2;
+            			var prevBallY = ballArray[i][1] + Math.sin(r*Math.PI/4)*BALL_RADIUS - ballArray[i][3]*2;
+            			var prevBrickCol = Math.floor(prevBallX/BRICK_W);
+            			var prevBrickRow = Math.floor(prevBallY/BRICK_H);
+                		var prevIndexUnderBall = rowColToArrayIndex(prevBrickCol, prevBrickRow);
+                		console.log(rowColToArrayIndex(prevBrickCol, prevBrickRow));
+                		if (rowColToArrayIndex(prevBrickCol, prevBrickRow) == rowColToArrayIndex(ballBrickCol, ballBrickRow + 1) || rowColToArrayIndex(prevBrickCol, prevBrickRow) == rowColToArrayIndex(ballBrickCol, ballBrickRow - 1)){
+        	    			ballArray[i][3] *= -1;
+        	    			console.log("EXO");
+        	    		}
+        	    		if (rowColToArrayIndex(prevBrickCol, prevBrickRow) == rowColToArrayIndex(ballBrickCol + 1, ballBrickRow) || rowColToArrayIndex(prevBrickCol, prevBrickRow) == rowColToArrayIndex(ballBrickCol - 1, ballBrickRow)){
+        	    			ballArray[i][2] *= -1;
+        	    			console.log("WHAT IS GOING ON");
+        	    		}
+        	            if (rowColToArrayIndex(prevBrickCol, prevBrickRow) == rowColToArrayIndex(ballBrickCol + 1, ballBrickRow + 1) || rowColToArrayIndex(prevBrickCol, prevBrickRow) == rowColToArrayIndex(ballBrickCol + 1, ballBrickRow - 1) || rowColToArrayIndex(prevBrickCol, prevBrickRow) == rowColToArrayIndex(ballBrickCol - 1, ballBrickRow + 1) || rowColToArrayIndex(prevBrickCol, prevBrickRow) == rowColToArrayIndex(ballBrickCol - 1, ballBrickRow - 1)){
+        	    		    ballArray[i][3] *= -1;
+        	    			ballArray[i][2] *= -1;
+        	    			console.log("rewqfdsavcxz");
+        	    		}
+        	    		if (brickGrid[brickIndexUnderBall] != 0){
+        			        brickGrid[brickIndexUnderBall] -= 1;
+        			        bricksLeft--;
+        			        xp_current++;
+        			        if (xp_current >= xp_needed[xp_level - 1]){
+        			            xp_current -= xp_needed[xp_level - 1];
+        			            xp_level++;
+        			            if (xp_level == 3){
+        			                GEMS_Emerald = true;
+        			                GEMS_Splash = true;
+        			            }
+        			            if (xp_level == 4){
+        			                GEMS_Ruby = true;
+        			            }
+        			            if (xp_level == 5){
+        			                GEMS_Amethyst = true;
+        			                GEMS_Autolauncher = true;
+        			            }
+        			            if (xp_level == 6){
+        			                GEMS_Sapphire = true;
+        			            }
+        			            if (xp_level == 7){
+        			                GEMS_Click = true;
+        			            }
+        			            if (xp_level == 8){
+        			                GEMS_Diamond = true;
+        			            }
+        			            if (xp_level == 10){
+        			                GEMS_GameEnd = true;
+        			            }
+        			            xpResetMode = true;
+        			        }
+        			        if (brickGrid[brickIndexUnderBall] == 0){
+        			            for (var m = 0; m < UPGRADE_SF[COUNTER_SF]; m++){
+        			                silver(brickIndexUnderBall);
+        			            }
+        			            if (gemActive){
+        			                var emeraldRandom = Math.floor(Math.random()*40);
+        			                if (emeraldRandom == 0){
+        			                    gem(brickIndexUnderBall, "emerald");
+        			                }
+        			            }
+        			            for (var m = 0; m < UPGRADE_GF[COUNTER_GF]; m++){
+        			                gold(brickIndexUnderBall);
+        			            }
+        			            brokenBricks.push([]);
+        			            brokenBricks[brokenCounter][0] = (brickIndexUnderBall % BRICK_AMOUNT)*BRICK_W + 200 + BRICK_W/2;
+	                            brokenBricks[brokenCounter][1] = Math.floor(brickIndexUnderBall/BRICK_AMOUNT)*BRICK_H + BRICK_H/2;
+	                            brokenBricks[brokenCounter][2] = 0;
+	                            brokenBricks[brokenCounter][3] = Math.random()*2 - 1;
+	                            brokenBricks[brokenCounter][4] = -6/BRICK_AMOUNT;
+	                            brokenBricks[brokenCounter][5] = Boolean(Math.round(Math.random()));
+	                            brokenBricks[brokenCounter][6] = Math.random()*100 + 20;
+	                            brokenCounter++;
+	                            totalBrickBreaks++;
+        			            
+        			        }else{
+        			            for (var m = 0; m < UPGRADE_SF[COUNTER_SF]; m++){
+        			                silver(brickIndexUnderBall);
+        			            }
+        			            if (gemActive){
+        			                var emeraldRandom = Math.floor(Math.random()*40);
+        			                if (emeraldRandom == 0){
+        			                    gem(brickIndexUnderBall, "emerald");
+        			                }
+        			            }
+        			            for (var m = 0; m < UPGRADE_GF[COUNTER_GF]; m++){
+        			                gold(brickIndexUnderBall);
+        			            }
+        			        }
+        	    		}
+        	    		ballTest = false;
+            		}
+            	}
+	        }
+	    }
+	}
+	
+	function coins(){
+	    for (var i = 0; i < silverArray.length; i++){
+	        if (silverArray[i][10]){
+	            colorCircle(silverArray[i][0], silverArray[i][1], 16, '#888888');
+	            colorCircle(silverArray[i][0], silverArray[i][1], 14, '#999999');
+	        }
+	    }
+	    for (var i = 0; i < goldArray.length; i++){
+	        if (goldArray[i][10]){
+	            colorCircle(goldArray[i][0], goldArray[i][1], 19, '#DDBB00');
+	            colorCircle(goldArray[i][0], goldArray[i][1], 17, '#EECC00');
+	        }
+	    }
+	    for (var i = 0; i < gemArray.length; i++){
+	        if (gemArray[i][10]){
+	            if (gemArray[i][11] == "emerald"){
+	                makeEmerald(gemArray[i][0], gemArray[i][1], 1);
+	            }
+	            if (gemArray[i][11] == "ruby"){
+	                makeRuby(gemArray[i][0], gemArray[i][1], 1);
+	            }
+	            if (gemArray[i][11] == "amethyst"){
+	                makeAmethyst(gemArray[i][0], gemArray[i][1], 1);
+	            }
+	            if (gemArray[i][11] == "sapphire"){
+	                makeSapphire(gemArray[i][0], gemArray[i][1], 1);
+	            }
+	            if (gemArray[i][11] == "diamond"){
+ 	                makeDiamond(gemArray[i][0], gemArray[i][1], 1.2);
+	            }
+	        }
+	    }
+	}
+	
+	function coinGemAmounts(){
+	    colorCircle(665, 175, 16, '#DDBB00');
+	    colorCircle(665, 175, 14, '#EECC00');
+	    colorCircle(660, 180, 16, '#888888');
+	    colorCircle(660, 180, 14, '#999999');
+	    //colorRect(630, 208, 170, 24, '#55FF55');
+	    //colorRect(630, 233, 170, 24, '#FF6666');
+	    //colorRect(630, 258, 170, 24, '#FF66FF');
+	    //colorRect(630, 283, 170, 24, '#6666FF');
+	    //colorRect(630, 308, 170, 24, '#66FFFF');
+	    //makeEmerald(660, 220, 0.5);
+	    //makeRuby(660, 245, 0.5);
+	    //makeAmethyst(660, 270, 0.5);
+	    //makeSapphire(660, 295, 0.5);
+	    //makeDiamond(660, 315, 0.6);
+	    if (MONEY_NOW < 10000){
+	        createPhrase("" + MONEY_NOW, 690, 165, 5, '#222222');
+	    }else if (MONEY_NOW >= 10000 && MONEY_NOW < 1000000){
+	        var divide100 = Math.floor(MONEY_NOW/100);
+	        var divide10 = divide100/10;
+	        createPhrase("" + divide10 + "k", 690, 165, 5, '#222222');
+	    }else if (MONEY_NOW >= 1000000 && MONEY_NOW < 1000000000){
+	        var divide10000 = Math.floor(MONEY_NOW/10000);
+	        var divide100 = divide10000/100;
+	        createPhrase("" + divide100 + "m", 690, 165, 5, '#222222');
+	    }
+	    //createPhrase("" + emeraldCounter, 680, 212, 4, '#666666');
+	    //createPhrase("" + rubyCounter, 680, 237, 4, '#666666');
+	    //createPhrase("" + amethystCounter, 680, 262, 4, '#666666');
+	    //createPhrase("" + sapphireCounter, 680, 287, 4, '#666666');
+	    //createPhrase("" + diamondCounter, 680, 312, 4, '#666666');
+	}
+	
+	function xp(){
+	    colorRect(0, 0, 170, 600, 'rgb(80, 190, 255)');
+	    for (var i = 0; i < 6; i++){
+	        colorRect(i*170/6 ,600 - xp_current*600/xp_needed[xp_level - 1], 170/1 - 170/6*i, xp_current*600/xp_needed[xp_level - 1], 'rgb(30, 70, ' + (111 + 20*i) + ')');
+	    }
+	    createPhrase(xp_current + "/" + xp_needed[xp_level - 1], 20, 550, 6, '#333333');
+	    createPhrase(xp_level + "", 60, 40, 18, '#111111');
+	    
+	}
+	
+	function xpResetAnimation(){
+	    xpResetCounter++;
+	    for (var i = 0; i < 6; i++){
+	        colorRect(i*170/6 ,600 - (40 - xpResetCounter)*(40 - xpResetCounter)*600/1600, 170/1 - 170/6*i, (40 - xpResetCounter)*(40 - xpResetCounter)*600/1600, 'rgb(30, 90, ' + (111 + 20*i) + ')');
+	    }
+	    createPhrase(xp_current + "/" + xp_needed[xp_level - 1], 20, 550, 6, '#333333');
+	    createPhrase(xp_level + "", 60, 40, 18, '#111111');
+	    if (xpResetCounter >= 40){
+	        xpResetMode = false;
+	        xpResetCounter = 0;
+	    }
+	}
+	
+	function upgradeIcon(){
+	    //colorRect(650, 430, 130, 130, 'gray');
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(630, 430);
+	    canvasContext.lineTo(630, 560);
+	    canvasContext.lineTo(640, 550);
+	    canvasContext.lineTo(640, 440);
+	    canvasContext.fillStyle = '#999999';
+	    if (ableToOpenMenu && !upgradeScreen && !menuScreen && !gemScreen && mouseX > 630 && mouseX < 800 && mouseY > 430 && mouseY < 560){
+	        canvasContext.fillStyle = '#555555';
+	    }
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(630, 430);
+	    canvasContext.lineTo(800, 430);
+	    canvasContext.lineTo(790, 440);
+	    canvasContext.lineTo(640, 440);
+	    canvasContext.fillStyle = '#888888';
+	    if (ableToOpenMenu && !upgradeScreen && !menuScreen && !gemScreen && mouseX > 630 && mouseX < 800 && mouseY > 430 && mouseY < 560){
+	        canvasContext.fillStyle = '#666666';
+	    }
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(630, 560);
+	    canvasContext.lineTo(800, 560);
+	    canvasContext.lineTo(790, 550);
+	    canvasContext.lineTo(640, 550);
+	    canvasContext.fillStyle = '#666666';
+	    if (ableToOpenMenu && !upgradeScreen && !menuScreen && !gemScreen && mouseX > 630 && mouseX < 800 && mouseY > 430 && mouseY < 560){
+	        canvasContext.fillStyle = '#888888';
+	    }
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(800, 430);
+	    canvasContext.lineTo(800, 560);
+	    canvasContext.lineTo(790, 550);
+	    canvasContext.lineTo(790, 440);
+	    canvasContext.fillStyle = '#555555';
+	    if (ableToOpenMenu && !upgradeScreen && !menuScreen && !gemScreen && mouseX > 630 && mouseX < 800 && mouseY > 430 && mouseY < 560){
+	        canvasContext.fillStyle = '#999999';
+	    }
+	    canvasContext.fill();
+	    if (ableToOpenMenu && !upgradeScreen && !menuScreen && !gemScreen && mouseX > 630 && mouseX < 800 && mouseY > 430 && mouseY < 560){
+	        colorRect(640, 440, 150, 110, '#707070')
+	    }else{
+	        colorRect(640, 440, 150, 110, '#777777');
+	    }
+	    if (UPGRADE_BallAmount[COUNTER_BallAmount] - ballCounter == UPGRADE_BallAmount[COUNTER_BallAmount]){
+	        createPhrase("open", 655, 450, 9, '#555555');
+	        createPhrase("menu", 650, 505, 9, '#555555');
+	        ableToOpenMenu = true;
+	    }else{
+	        ableToOpenMenu = false;
+	        canvasContext.beginPath();
+	        canvasContext.moveTo(770, 445);
+	        canvasContext.lineTo(780, 455);
+	        canvasContext.lineTo(660, 545);
+	        canvasContext.lineTo(650, 535);
+	        canvasContext.fillStyle = '#666666';
+	        canvasContext.fill();
+	    }
+	}
+	
+	function silver(index){
+	    var spreadRandX = Math.random()*12 - 6;
+	    var spreadRandY = Math.random()*12 - 6;
+	    silverArray.push([]);
+	    silverArray[silverCounter][0] = (index % BRICK_AMOUNT)*BRICK_W + 200 + BRICK_W/2;
+	    silverArray[silverCounter][1] = Math.floor(index/BRICK_AMOUNT)*BRICK_H + BRICK_H/2;
+	    silverArray[silverCounter][2] = spreadRandX;
+	    silverArray[silverCounter][3] = spreadRandY;
+	    //silverArray[silverCounter][4];
+	    //silverArray[silverCounter][5];
+	    silverArray[silverCounter][6] = spreadRandX;
+	    silverArray[silverCounter][7] = spreadRandY;
+	    silverArray[silverCounter][8] = Math.floor(Math.random()*10 + 30);
+	    silverArray[silverCounter][9] = 0;
+	    silverArray[silverCounter][10] = true;
+	    silverCounter++;
+	}
+	
+	function gold(index){
+	    var spreadRandX = Math.random()*12 - 6;
+	    var spreadRandY = Math.random()*12 - 6;
+	    goldArray.push([]);
+	    goldArray[goldCounter][0] = (index % BRICK_AMOUNT)*BRICK_W + 200 + BRICK_W/2;
+	    goldArray[goldCounter][1] = Math.floor(index/BRICK_AMOUNT)*BRICK_H + BRICK_H/2;
+	    goldArray[goldCounter][2] = spreadRandX;
+	    goldArray[goldCounter][3] = spreadRandY;
+	    //goldArray[goldCounter][4];
+	    //goldArray[goldCounter][5];
+	    goldArray[goldCounter][6] = spreadRandX;
+	    goldArray[goldCounter][7] = spreadRandY;
+	    goldArray[goldCounter][8] = Math.floor(Math.random()*10 + 30);
+	    goldArray[goldCounter][9] = 0;
+	    goldArray[goldCounter][10] = true;
+	    goldCounter++;
+	}
+	
+	function gem(index, type){
+	    var spreadRandX = Math.random()*6 - 3;
+	    var spreadRandY = Math.random()*6 - 3;
+	    gemArray.push([]);
+	    gemArray[gemCounter][0] = (index % BRICK_AMOUNT)*BRICK_W + 200 + BRICK_W/2;
+	    gemArray[gemCounter][1] = Math.floor(index/BRICK_AMOUNT)*BRICK_H + BRICK_H/2;
+	    gemArray[gemCounter][2] = spreadRandX;
+	    gemArray[gemCounter][3] = spreadRandY;
+	    //gemArray[gemCounter][4];
+	    //gemArray[gemCounter][5];
+	    gemArray[gemCounter][6] = spreadRandX;
+	    gemArray[gemCounter][7] = spreadRandY;
+	    gemArray[gemCounter][8] = Math.floor(Math.random()*10 + 30);
+	    gemArray[gemCounter][9] = 0;
+	    gemArray[gemCounter][10] = true;
+	    gemArray[gemCounter][11] = type;
+	    gemCounter++;
+	}
+	
+	function makePlus(x, y, s, color){
+	    colorRect(x, y, s, s, color);
+	    colorRect(x - s, y, s, s, color);
+	    colorRect(x, y - s, s, s, color);
+	    colorRect(x + s, y, s, s, color);
+	    colorRect(x, y + s, s, s, color);
+	}
+	
+	function makeEmerald(x, y, s){
+	    colorRect(x - 15*s, y - 15*s, 30*s, 30*s, '#00DD00');
+	    colorRect(x - 15*s, y - 20*s, 30*s, 5*s, '#00EE00');
+	    colorRect(x - 15*s, y + 15*s, 30*s, 5*s, '#00BB00');
+	    colorRect(x - 20*s, y - 15*s, 5*s, 30*s, '#00EE00');
+	    colorRect(x + 15*s, y - 15*s, 5*s, 30*s, '#00BB00');
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x - 15*s, y - 15*s);
+	    canvasContext.lineTo(x - 15*s, y - 20*s);
+	    canvasContext.lineTo(x - 20*s, y - 15*s);
+	    canvasContext.fillStyle = "#00FF00";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x + 15*s, y - 15*s);
+	    canvasContext.lineTo(x + 20*s, y - 15*s);
+	    canvasContext.lineTo(x + 15*s, y - 20*s);
+	    canvasContext.fillStyle = "#00CC00";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x - 15*s, y + 15*s);
+	    canvasContext.lineTo(x - 20*s, y + 15*s);
+	    canvasContext.lineTo(x - 15*s, y + 20*s);
+	    canvasContext.fillStyle = "#00CC00";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x + 15*s, y + 15*s);
+	    canvasContext.lineTo(x + 20*s, y + 15*s);
+	    canvasContext.lineTo(x + 15*s, y + 20*s);
+	    canvasContext.fillStyle = "#00AA00";
+	    canvasContext.fill();
+	}
+	
+	function makeRuby(x, y, s){
+	    for (var h = 0; h < 8; h++){
+	        canvasContext.beginPath();
+	        canvasContext.arc(x, y, 22*s, Math.PI*5/4 + Math.PI/8*h, Math.PI*9/4, false);
+	        canvasContext.lineTo(x, y);
+	        canvasContext.fillStyle = 'rgb(' + (255 - 128/8*h) + ', 80, 80)';
+	        canvasContext.fill();
+	    }
+	    for (var h = 0; h < 8; h++){
+	        canvasContext.beginPath();
+	        canvasContext.arc(x, y, 22*s, Math.PI*5/4 - Math.PI/8*h, Math.PI*1/4, true);
+	        canvasContext.lineTo(x, y);
+	        canvasContext.fillStyle = 'rgb(' + (255 - 128/8*h) + ', 80, 80)';
+	        canvasContext.fill();
+	    }
+	    colorCircle(x, y, 16*s, "#E24444");
+	}
+	
+	function makeAmethyst(x, y, s){
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x, y);
+	    canvasContext.lineTo(x - 25*s, y);
+	    canvasContext.lineTo(x - 12.5*s, y - 12.5*s*Math.sqrt(3));
+	    canvasContext.fillStyle = '#EE00EE';
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x, y);
+	    canvasContext.lineTo(x - 12.5*s, y - 12.5*s*Math.sqrt(3));
+	    canvasContext.lineTo(x + 12.5*s, y - 12.5*s*Math.sqrt(3));
+	    canvasContext.fillStyle = '#DD00DD';
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x, y);
+	    canvasContext.lineTo(x + 12.5*s, y - 12.5*s*Math.sqrt(3));
+	    canvasContext.lineTo(x + 25*s, y);
+	    canvasContext.fillStyle = '#CC00CC';
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x, y);
+	    canvasContext.lineTo(x + 25*s, y);
+	    canvasContext.lineTo(x + 12.5*s, y + 12.5*s*Math.sqrt(3));
+	    canvasContext.fillStyle = '#BB00BB';
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x, y);
+	    canvasContext.lineTo(x + 12.5*s, y + 12.5*s*Math.sqrt(3));
+	    canvasContext.lineTo(x - 12.5*s, y + 12.5*s*Math.sqrt(3));
+	    canvasContext.fillStyle = '#CC00CC';
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x, y);
+	    canvasContext.lineTo(x - 12.5*s, y + 12.5*s*Math.sqrt(3));
+	    canvasContext.lineTo(x - 25*s, y);
+	    canvasContext.fillStyle = '#DD00DD';
+	    canvasContext.fill();
+	}
+	
+	function makeSapphire(x, y, s){
+	   canvasContext.beginPath();
+	   canvasContext.moveTo(x - 24*s, y - 6*s);
+	   canvasContext.lineTo(x - 24*s, y - 24*s);
+	   canvasContext.lineTo(x - 18*s, y - 18*s);
+	   canvasContext.lineTo(x - 18*s, y - 6*s);
+	   canvasContext.fillStyle = "#4444FF";
+	   canvasContext.fill();
+	   canvasContext.beginPath();
+	   canvasContext.moveTo(x - 6*s, y - 24*s);
+	   canvasContext.lineTo(x - 24*s, y - 24*s);
+	   canvasContext.lineTo(x - 18*s, y - 18*s);
+	   canvasContext.lineTo(x - 6*s, y - 18*s);
+	   canvasContext.fillStyle = "#4444EE";
+	   canvasContext.fill();
+	   canvasContext.beginPath();
+	   canvasContext.moveTo(x - 6*s, y - 24*s);
+	   canvasContext.lineTo(x + 24*s, y + 6*s);
+	   canvasContext.lineTo(x + 18*s, y + 6*s);
+	   canvasContext.lineTo(x - 6*s, y - 18*s);
+	   canvasContext.fillStyle = "#3333CC";
+	   canvasContext.fill();
+	   canvasContext.beginPath();
+	   canvasContext.moveTo(x + 24*s, y + 6*s);
+	   canvasContext.lineTo(x + 24*s, y + 24*s);
+	   canvasContext.lineTo(x + 18*s, y + 18*s);
+	   canvasContext.lineTo(x + 18*s, y + 6*s);
+	   canvasContext.fillStyle = "#3333AA";
+	   canvasContext.fill();
+	   canvasContext.beginPath();
+	   canvasContext.moveTo(x + 6*s, y + 24*s);
+	   canvasContext.lineTo(x + 24*s, y + 24*s);
+	   canvasContext.lineTo(x + 18*s, y + 18*s);
+	   canvasContext.lineTo(x + 6*s, y + 18*s);
+	   canvasContext.fillStyle = "#3333BB";
+	   canvasContext.fill();
+	   canvasContext.beginPath();
+	   canvasContext.moveTo(x + 6*s, y + 24*s);
+	   canvasContext.lineTo(x - 24*s, y - 6*s);
+	   canvasContext.lineTo(x - 18*s, y - 6*s);
+	   canvasContext.lineTo(x + 6*s, y + 18*s);
+	   canvasContext.fillStyle = "#3333CC";
+	   canvasContext.fill();
+	   canvasContext.beginPath();
+	   canvasContext.moveTo(x - 18*s, y - 6*s);
+	   canvasContext.lineTo(x - 18*s, y - 18*s);
+	   canvasContext.lineTo(x - 6*s, y - 18*s);
+	   canvasContext.lineTo(x + 18*s, y + 6*s);
+	   canvasContext.lineTo(x + 18*s, y + 18*s);
+	   canvasContext.lineTo(x + 6*s, y + 18*s);
+	   canvasContext.fillStyle = '#3333DD';
+	   canvasContext.fill();
+	}
+	
+	function makeDiamond(x, y, s){
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x - 25*s, y);
+	    canvasContext.lineTo(x - 15*s, y);
+	    canvasContext.lineTo(x - 10.5*s, y - 6*s);
+	    canvasContext.lineTo(x - 17.5*s, y - 6*s);
+	    canvasContext.fillStyle = "#00FFFF";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x - 15*s, y);
+	    canvasContext.lineTo(x - 5*s, y);
+	    canvasContext.lineTo(x - 3.5*s, y - 6*s);
+	    canvasContext.lineTo(x - 10.5*s, y - 6*s);
+	    canvasContext.fillStyle = "#00EEEE";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x - 5*s, y);
+	    canvasContext.lineTo(x + 5*s, y);
+	    canvasContext.lineTo(x + 3.5*s, y - 6*s);
+	    canvasContext.lineTo(x - 3.5*s, y - 6*s);
+	    canvasContext.fillStyle = "#00DDDD";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x + 5*s, y);
+	    canvasContext.lineTo(x + 15*s, y);
+	    canvasContext.lineTo(x + 10.5*s, y - 6*s);
+	    canvasContext.lineTo(x + 3.5*s, y - 6*s);
+	    canvasContext.fillStyle = "#00CCCC";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x + 15*s, y);
+	    canvasContext.lineTo(x + 25*s, y);
+	    canvasContext.lineTo(x + 17.5*s, y - 6*s);
+	    canvasContext.lineTo(x + 10.5*s, y - 6*s);
+	    canvasContext.fillStyle = "#00BBBB";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x - 25*s, y);
+	    canvasContext.lineTo(x - 15*s, y);
+	    canvasContext.lineTo(x, y + 25*s);
+	    canvasContext.fillStyle = "#00EEEE";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x - 15*s, y);
+	    canvasContext.lineTo(x - 5*s, y);
+	    canvasContext.lineTo(x, y + 25*s);
+	    canvasContext.fillStyle = "#00DDDD";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x - 5*s, y);
+	    canvasContext.lineTo(x + 5*s, y);
+	    canvasContext.lineTo(x, y + 25*s);
+	    canvasContext.fillStyle = "#00CCCC";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x + 5*s, y);
+	    canvasContext.lineTo(x + 15*s, y);
+	    canvasContext.lineTo(x, y + 25*s);
+	    canvasContext.fillStyle = "#00BBBB";
+	    canvasContext.fill();
+	    canvasContext.beginPath();
+	    canvasContext.moveTo(x + 15*s, y);
+	    canvasContext.lineTo(x + 25*s, y);
+	    canvasContext.lineTo(x, y + 25*s);
+	    canvasContext.fillStyle = "#00AAAA";
+	    canvasContext.fill();
+	}
+	
+	function isBrickAtColRow(col, row){
+    	if (col >= 0 && col < BRICK_AMOUNT && row >= 0 && row < BRICK_AMOUNT){
+    		var brickIndexUnderCoord = rowColToArrayIndex(col, row);
+    		return brickGrid[brickIndexUnderCoord];
+    	}else{
+    		return 0;
+	    }
+    }
+    
+    function rowColToArrayIndex(col, row){
+	    return BRICK_AMOUNT*row + col; 
+    }
+	
+	function brickReset(){
+	    for (var i = 0; i < BRICK_AMOUNT; i++){
+			for (var j = 0; j < BRICK_AMOUNT; j++){
+				brickGrid[j + i*BRICK_AMOUNT] = BRICK_HEALTH;
+				bricksLeft += BRICK_HEALTH;
+			}
+		}
+		totalBrickResets++;
+	}
+	
+	function brickResetAnimation(){
+	    brickResetCounter++;
+	    for (var i = 0; i < BRICK_AMOUNT; i++){
+	        for (var j = 0; j < BRICK_AMOUNT; j++){
+	            if (brickGrid[j + i*BRICK_AMOUNT] == 0){
+	                colorRect(j*BRICK_W + (canvas.width - 400)/2 + BRICK_O, i*BRICK_H + BRICK_O + (canvas.height/1600*(40 - brickResetCounter)*(40 - brickResetCounter)), BRICK_W - 2*BRICK_O, BRICK_H - 2*BRICK_O, 'rgb(128, 0, 128)');
+	            }
+	        }
+	    }
+	    if (brickResetCounter >= 40){
+	        brickReset();
+	        brickResetMode = false;
+	        brickResetCounter = 0;
+	    }
+	}
+	
+	function refillCircle(){
+	    for (var i = 0; i < 12; i++){
+	        canvasContext.beginPath();
+	        canvasContext.arc(canvas.width - 85, 85, 50, Math.PI*3/2 + Math.PI/6*i, Math.PI*3/2 + Math.PI/12 + Math.PI/6*i);
+	        canvasContext.strokeStyle = '#aaaaaa';
+	        canvasContext.lineWidth = 4;
+	        canvasContext.closePath();
+	        canvasContext.stroke();
+	    }
+	    canvasContext.beginPath();
+	    canvasContext.arc(canvas.width - 85, 85, 50, Math.PI*3/2, refillT, true);
+	    if (refillT != -Math.PI/2 && refillT != Math.PI*3/2){
+	        canvasContext.lineTo(canvas.width - 85, 85);
+	        canvasContext.lineTo(canvas.width - 85, 35);
+	    }
+	    canvasContext.lineWidth = 4;
+	    canvasContext.strokeStyle = '#aaaaaa';
+	    canvasContext.closePath();
+	    canvasContext.stroke();
+	    canvasContext.fillStyle = 'white';
+	    canvasContext.fill();
+	    if (refillPause){
+	        canvasContext.beginPath();
+		    canvasContext.lineTo(canvas.width - 39, 31);
+		    canvasContext.lineTo(canvas.width - 31, 39);
+		    canvasContext.lineTo(canvas.width - 131, 139);
+		    canvasContext.lineTo(canvas.width - 139, 131);
+		    canvasContext.fillStyle = '#bbbbbb';
+		    canvasContext.fill();
+		}else{
+		    if (mouseX > canvas.width - 135 && mouseX < canvas.width - 35 && mouseY > 35 && mouseY < 135 && ballCounter == BALL_AMOUNT){
+		        refillF = true;
+		        console.log("log");
+		    }else{
+		        refillF = false;
+		    }
+		    if (totalBallLaunches == 1 && totalBrickResets == 1 && !brickResetMode){
+		        refillHint = true;
+		    }else{
+		        refillHint = false;
+		    }
+		}
+		if (refillF && !upgradeScreen && !menuScreen){
+		    refillT -= Math.PI/BALL_REFILL;
+		    if (refillT <= -Math.PI/2){
+		        refillF = false;
+		        ballCounter = 0;
+		        ballArray = [[]];
+		        brickResetMode = true;
+		        refillHint = false;
+		    }
+		}
+		if (ballCounter != BALL_AMOUNT){
+		    if (BALL_AMOUNT - ballCounter > 99){
+		        var posX = canvas.width - 132;
+		    }else if(BALL_AMOUNT - ballCounter > 9){
+		        var posX = canvas.width - 116;
+		    }else{
+		        var posX = canvas.width - 100;
+		    }
+		    createPhrase('' + (BALL_AMOUNT - ballCounter), posX, 64, 10, 'gray');
+		}
+	}
+	
+	function doALotOfThings(){
+		if (playState){
+		    console.log(upgradeScreen);
+		    if (mouseX >= 200 && mouseX <= 600 && mouseY >= 0 && mouseY <= 500 && menuScreen == false && upgradeScreen == false && gemScreen == false){
+		        if (ballCounter < BALL_AMOUNT){
+		            launchBall();
+		            console.log(Math.cos(ballArray[ballCounter - 1][2]) + ", " + ballCounter + ", " + ballArray.length);
+		        }
+		    }else if (ableToOpenMenu && mouseX >= 630 && mouseX <= 800 && mouseY >= 430 && mouseY <= 560 && menuScreen == false){
+		        menuUpAnimation = true;
+		        menuScreen = true;
+		    }else if (menuScreen && upgradeScreen == false && menuUpAnimation == false && ((mouseY <= 100 || mouseY >= 500) || (mouseX <= 100 || mouseX >= 700))){
+		        menuDownAnimation = true;
+		    }else if (menuScreen && menuUpAnimation == false && mouseX > 110 && mouseX < 395 && mouseY > 110 && mouseY < 295){
+		        upgradeScreen = true;
+		        menuScreen = false;
+		  /*}else if (menuScreen && menuUpAnimation == false && mouseX > 410 && mouseX < 695 && mouseY > 110 && mouseY < 295){
+		        gemScreen = true;
+		        menuScreen = false;*/
+		    }else if (menuScreen && menuUpAnimation == false && mouseX > 410 && mouseX < 695 && mouseY > 310 && mouseY < 495){
+		        if (soundFX){
+		            soundFX = false;
+		        }else{
+		            soundFX = true;
+		        }
+		    }else if (upgradeScreen && ((mouseY <= 100 || mouseY >= 500) || (mouseX <= 100 || mouseX >= 700))){
+		        upgradeScreen = false;
+		        menuScreen = true;
+		    }else if (gemScreen && ((mouseY <= 100 || mouseY >= 500) || (mouseX <= 100 || mouseX >= 700))){
+		        gemScreen = false;
+		        menuScreen = true;
+		    }else if (upgradeScreen){
+		        if (MONEY_NOW >= COST_BrickGrid[COUNTER_BrickGrid] && COUNTER_BrickGrid < 9 && mouseX >= 115 && mouseX <= 175 && mouseY >= 425 && mouseY <= 485){
+    		        MONEY_NOW -= COST_BrickGrid[COUNTER_BrickGrid];
+    		        COUNTER_BrickGrid++;
+    		        BRICK_AMOUNT = UPGRADE_BrickGrid[COUNTER_BrickGrid];
+    		        BRICK_W = 400/BRICK_AMOUNT;
+	                BRICK_H = 300/BRICK_AMOUNT;
+	                brickReset();
+    		    }
+    		    if (MONEY_NOW >= COST_BrickHealth[COUNTER_BrickHealth] && COUNTER_BrickHealth < 9 && mouseX >= 188 && mouseX <= 248 && mouseY >= 425 && mouseY <= 485){
+    		        MONEY_NOW -= COST_BrickHealth[COUNTER_BrickHealth];
+    		        COUNTER_BrickHealth++;
+    		        BRICK_HEALTH = UPGRADE_BrickHealth[COUNTER_BrickHealth];
+    		        brickReset();
+    		    }
+    		    if (MONEY_NOW >= COST_BallAmount[COUNTER_BallAmount] && COUNTER_BallAmount < 9 && mouseX >= 261 && mouseX <= 321 && mouseY >= 425 && mouseY <= 485){
+    		        MONEY_NOW -= COST_BallAmount[COUNTER_BallAmount];
+    		        COUNTER_BallAmount++;
+    		        BALL_AMOUNT = UPGRADE_BallAmount[COUNTER_BallAmount];
+        		}
+		        if (MONEY_NOW >= COST_BallRefill[COUNTER_BallRefill] && COUNTER_BallRefill < 9 && mouseX >= 334 && mouseX <= 394 && mouseY >= 425 && mouseY <= 485){
+    		        MONEY_NOW -= COST_BallRefill[COUNTER_BallRefill];
+    		        COUNTER_BallRefill++;
+    		        BALL_REFILL = UPGRADE_BallRefill[COUNTER_BallRefill];
+    		    }
+    		    if (MONEY_NOW >= COST_SF[COUNTER_SF] && COUNTER_SF < 9 && mouseX >= 407 && mouseX <= 467 && mouseY >= 425 && mouseY <= 485){
+    		        MONEY_NOW -= COST_SF[COUNTER_SF];
+    		        COUNTER_SF++;
+    		    }
+    		    if (MONEY_NOW >= COST_SV[COUNTER_SV] && COUNTER_SV < 9 && mouseX >= 480 && mouseX <= 540 && mouseY >= 425 && mouseY <= 485){
+    		        MONEY_NOW -= COST_SV[COUNTER_SV];
+    		        COUNTER_SV++;
+    		    }
+    		    if (MONEY_NOW >= COST_GF[COUNTER_GF] && COUNTER_GF < 9 && mouseX >= 553 && mouseX <= 613 && mouseY >= 425 && mouseY <= 485){
+    		        MONEY_NOW -= COST_GF[COUNTER_GF];
+    		        COUNTER_GF++;
+    		    }
+    		    if (MONEY_NOW >= COST_GV[COUNTER_GV] && COUNTER_GV < 9 && mouseX >= 626 && mouseX <= 686 && mouseY >= 425 && mouseY <= 485){
+    		        MONEY_NOW -= COST_GV[COUNTER_GV];
+    		        COUNTER_GV++;
+    		    }
+		    }
+		    console.log(upgradeScreen);
+		    console.log(upgradeScreen && ((mouseY <= 100 || mouseY >= 500) || (mouseX <= 100 || mouseX >= 700)));
+		    console.log(menuScreen && menuUpAnimation == false && ((mouseY <= 100 || mouseY >= 500) || (mouseX <= 100 || mouseX >= 700)));
+		}
+	}
+	
+	function doEvenMoreThings(){
+
+	}
+	
+	function launchBall(){
+	    var distX = mouseX - canvas.width/2 + Math.random()*100 - 50;
+	    var distY = mouseY - 550 + Math.random()*100 - 50;
+	    var hyp = Math.sqrt(distX*distX + distY*distY);
+	    var ratio = 5/hyp;
+	    ballArray.push([]);
+	    ballArray[ballCounter][0] = canvas.width/2;
+	    ballArray[ballCounter][1] = 550;
+	    ballArray[ballCounter][2] = distX*ratio;
+	    ballArray[ballCounter][3] = distY*ratio;
+	    ballArray[ballCounter][4] = BALL_HEALTH;
+	    ballCounter++;
+	    totalBallLaunches++;
+	}
+	
+	function make8x8Grid(x, y, size, colorArray){
+	    for (var i = 0; i < 8; i++){
+	        for (var j = 0; j < 8; j++){
+	            colorRect(x + j*size, y + i*size, size, size, colorArray[j + i*8]);
+	        }
+	    }
+	}
+	
+	function make4x4Grid(x, y, size, colorArray){
+	    for (var i = 0; i < 4; i++){
+	        for (var j = 0; j < 4; j++){
+	            colorRect(x + j*size*2, y + i*size*2, size*2, size*2, colorArray[j*2 + i*16])
+	        }
+	    }
+	}
+	
+	function colorRect(topLeftX, topLeftY, boxWidth, boxHeight, fillColor) {
+		canvasContext.fillStyle = fillColor;
+		canvasContext.fillRect(topLeftX,topLeftY, boxWidth,boxHeight);
+	}
+	
+	function colorCircle(centerX, centerY, radius, fillColor) {
+		canvasContext.fillStyle = fillColor;
+		canvasContext.beginPath();
+		canvasContext.arc(centerX,centerY, radius, 0,Math.PI*2, true);
+		canvasContext.fill();
+	}		
+	
+	function colorText(showWords, fontsize, textX, textY, textColor){
+		canvasContext.fillStyle = textColor;
+		canvasContext.font = fontsize;
+		canvasContext.fillText(showWords, textX, textY);
+	}
+	
+	function createLetter(letter, x, y, s, color){
+        if (letter == 'a'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+        }
+        if (letter == 'b'){
+            colorRect(x, y, 2.5*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x + 2*s, y + 0.8*s, 1*s, 0.9*s, color);
+            colorRect(x + 2*s, y + 2.3*s, 1*s, 0.9*s, color);
+            colorRect(x, y + 1.5*s, 2.5*s, 1*s, color);
+            colorRect(x, y + 3*s, 2.5*s, 1*s, color);
+        }
+        if (letter == 'c'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == 'd'){
+            colorRect(x, y, 2.5*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 2.5*s, 1*s);
+            colorRect(x + 2*s, y + 1*s, 1*s, 2*s);
+        }
+        if (letter == 'e'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y + 1.5*s, 2.5*s, 1*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s);
+        }
+        if (letter == 'f'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y + 1.5*s, 2.5*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s);
+        }
+        if (letter == 'g'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+            colorRect(x + 2*s, y + 1.5*s, 1*s, 2*s, color);
+            colorRect(x + 1.5*s, y + 1.5*s, 1.5*s, 1*s, color);
+        }
+        if (letter == 'h'){
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+        }
+        if (letter == 'i'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x + 1*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == 'j'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x + 1*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 2*s, 1*s, color);
+        }
+        if (letter == 'k'){
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x, y + 1.5*s, 2.5*s, 1*s, color);
+            colorRect(x + 2*s, y, 1*s, 1.6*s, color);
+            colorRect(x + 2*s, y + 2.4*s, 1*s, 1.6*s, color);
+        }
+        if (letter == 'l'){
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == 'm'){
+            colorRect(x, y, 4*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x + 1.5*s, y, 1*s, 4*s, color);
+            colorRect(x + 3*s, y, 1*s, 4*s, color);
+        }
+        if (letter == 'n'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+        }
+        if (letter == 'o'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == 'p'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x + 2*s, y, 1*s, 2.5*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+        }
+        if (letter == 'q'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+            colorRect(x + 1*s, y + 3.5*s, 1*s, 1.2*s, color);
+        }
+        if (letter == 'r'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x + 2*s, y, 1*s, 2.5*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+            colorRect(x + 1.75*s, y + 1.5*s, 1*s, 2.5*s, color);
+            
+        }
+        if (letter == 's'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 2.5*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+            colorRect(x + 2*s, y + 1.5*s, 1*s, 2.5*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }   
+        if (letter == 't'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x + 1*s, y, 1*s, 4*s, color);
+        }
+        if (letter == 'u'){
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+        }
+        if (letter == 'v'){
+            colorRect(x, y, 1*s, 3*s, color);
+            colorRect(x + 1*s, y + 3*s, 1*s, 1*s, color);
+            colorRect(x + 2*s, y, 1*s, 3*s, color);
+        }
+        if (letter == 'w'){
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x + 1.5*s, y, 1*s, 4*s, color);
+            colorRect(x + 3*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 4*s, 1*s, color);
+        }
+        if (letter == 'x'){
+            colorRect(x, y, 1*s, 1.5*s, color);
+            colorRect(x, y + 2.5*s, 1*s, 1.5*s, color);
+            colorRect(x + 2*s, y,  1*s, 1.5*s, color);
+            colorRect(x + 2*s, y + 2.5*s, 1*s, 1.5*s, color);
+            colorRect(x + 1*s, y + 1.5*s, 1*s, 1*s, color);
+        }
+        if (letter == 'y'){
+            colorRect(x, y, 1*s, 1.5*s, color);
+            colorRect(x + 2*s, y, 1*s, 1.5*s, color);
+            colorRect(x + 1*s, y + 1.5*s, 1*s, 2.5*s, color);
+        }
+        if (letter == 'z'){
+            colorRect(x, y, 3*s, 0.9*s, color);
+            colorRect(x, y + 3.1*s, 3*s, 0.9*s, color);
+            canvasContext.beginPath();
+            canvasContext.moveTo(x + 2*s, y + 0.9*s);
+            canvasContext.lineTo(x, y + 3.1*s);
+            canvasContext.lineTo(x + 1*s, y + 3.1*s);
+            canvasContext.lineTo(x + 3*s, y + 0.9*s);
+            canvasContext.fillStyle = color;
+            canvasContext.fill();
+        }
+        if (letter == '0'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == '1'){
+            colorRect(x, y, 2*s, 1*s, color);
+            colorRect(x + 1*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == '2'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x + 2*s, y, 1*s, 2.5*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+            colorRect(x, y + 1.5*s, 1*s, 2.5*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == '3'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == '4'){
+            colorRect(x, y, 1*s, 2.5*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+        }
+        if (letter == '5'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 2.5*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+            colorRect(x + 2*s, y + 1.5*s, 1*s, 2.5*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == '6'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+            colorRect(x + 2*s, y + 1.5*s, 1*s, 2.5*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == '7'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+        }
+        if (letter == '8'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 4*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == '9'){
+            colorRect(x, y, 3*s, 1*s, color);
+            colorRect(x, y, 1*s, 2.5*s, color);
+            colorRect(x, y + 1.5*s, 3*s, 1*s, color);
+            colorRect(x + 2*s, y, 1*s, 4*s, color);
+            colorRect(x, y + 3*s, 3*s, 1*s, color);
+        }
+        if (letter == '!'){
+            colorRect(x, y, 1*s, 2.5*s, color);
+            colorRect(x, y + 3*s, 1*s, 1*s, color);
+        }
+        if (letter == '<'){
+            colorCircle(x + 1.1*s, y + 1.5*s, 1.1*s, color);
+            colorCircle(x + 1.7*s + 1.3*s, y + 1.5*s, 1.1*s, color);
+            canvasContext.beginPath();
+            canvasContext.moveTo(x - 0.1*s, y + 0.7*s + 1.2*s);
+            canvasContext.lineTo(x + 2.0*s, y + 0.4*s + 3.8*s);
+            canvasContext.lineTo(x + 4.1*s, y + 0.7*s + 1.2*s);
+            canvasContext.fill();
+        }
+        if (letter == '.'){
+            colorRect(x, y + 3*s, 1*s, 1*s, color);
+        }
+        if (letter == '/'){
+            canvasContext.beginPath();
+            canvasContext.moveTo(x + 2*s, y);
+            canvasContext.lineTo(x + 3*s, y);
+            canvasContext.lineTo(x + 1*s, y + 4*s);
+            canvasContext.lineTo(x, y + 4*s);
+            canvasContext.fillStyle = color;
+            canvasContext.fill();
+        }
+        if (letter == '%'){
+            createLetter('/', x, y, s, color);
+            colorCircle(x + 0.4*s, y + 0.6*s, s*0.8, color);
+            colorCircle(x + 2.8*s, y + 3.3*s, s*0.8, color);
+        }
+    }
+                
+    function createPhrase(word, x, y, size, color){
+        var mwCounter = 0;
+        var dotCounter = 0;
+        for (var i = 0; i < word.length; i++){
+            createLetter(word.charAt(i), x + i*size*3.5 + mwCounter*size - 2*dotCounter*size, y, size, color);
+            if (word.charAt(i) == 'm' || word.charAt(i) == 'w'){
+                mwCounter++;
+            }
+            if (word.charAt(i) == '.'){
+                dotCounter++;
+            }
+        }
+    } 
+    
+</script>
+
+</body>
+</html>
+
